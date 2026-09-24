@@ -38,6 +38,7 @@ $config['plugins'] = [
     'managesieve',
     'markasjunk',
     'newmail_notifier',
+    'originating_ip',
     'password',
     'vcard_attachments',
     'zipdownload',

@@ -153,6 +153,8 @@ RUN echo "Installing Roundcube ${ROUNDCUBE_VERSION}" \
     && mv "/tmp/roundcubemail-${ROUNDCUBE_VERSION}" /opt/roundcube \
     && rm -rf /opt/roundcube/installer /tmp/roundcubemail-*
 
+COPY roundcube/plugins/ /opt/roundcube/plugins/
+
 RUN rm -f /etc/php/8.4/fpm/pool.d/www.conf \
     && sed -i 's#^error_log = .*#error_log = /proc/self/fd/2#' /etc/php/8.4/fpm/php-fpm.conf
 
