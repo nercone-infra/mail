@@ -1,0 +1,214 @@
+services:
+  ruconet:
+    container_name: mail-ruconet
+    image: ghcr.io/nercone-infra/ruconet-node:latest
+    restart: unless-stopped
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    cap_add:
+      - NET_ADMIN
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+    dns:
+      - 127.0.0.1
+    dns_opt:
+      - trust-ad
+    environment:
+      - RUCONET_NAME=mail
+      - RUCONET_PRIVATE_KEY=${RUCONET_PRIVATE_KEY:?RUCONET_PRIVATE_KEY is required}
+      - RUCONET_PRESHARED_KEY=${RUCONET_PRESHARED_KEY:?RUCONET_PRESHARED_KEY is required}
+      - RUCONET_HUB_PUBLIC_KEY=${RUCONET_HUB_PUBLIC_KEY:?RUCONET_HUB_PUBLIC_KEY is required}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/ruconet-node", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  cert:
+    container_name: mail-cert
+    image: ghcr.io/nercone-infra/ruconet-cert:latest
+    restart: unless-stopped
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    volumes:
+      - ./data/certs:/etc/certs
+    environment:
+      - CERT_BUNDLES=ruconet letsencrypt
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/cert-agent", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+
+  tls:
+    container_name: mail-tls
+    image: ghcr.io/nercone-infra/ruconet-tls:latest
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    volumes:
+      - ./tls:/etc/nginx.d:ro
+      - ./data/certs:/etc/certs:ro
+      - ./data/www:/var/www/roundcube:ro
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+
+  postfix:
+    container_name: mail-postfix
+    build:
+      context: .
+      target: postfix
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    volumes:
+      - ./postfix/etc:/etc/postfix.d:ro
+      - ./data/spool:/var/spool/postfix
+      - ./data/certs:/etc/certs:ro
+    environment:
+      - MAIL_DB_PASSWORD=${MAIL_DB_PASSWORD}
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+
+  dovecot:
+    container_name: mail-dovecot
+    build:
+      context: .
+      target: dovecot
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    volumes:
+      - ./dovecot/etc:/etc/dovecot.d:ro
+      - ./dovecot/sieve:/etc/dovecot-sieve:ro
+      - ./data/vmail:/srv/vmail
+    environment:
+      - MAIL_DB_PASSWORD=${MAIL_DB_PASSWORD}
+      - RSPAMD_PASSWORD=${RSPAMD_PASSWORD}
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+
+  auth:
+    container_name: mail-auth
+    build:
+      context: .
+      target: auth
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    environment:
+      - IMAP_HOST=127.0.0.1
+      - IMAP_PORT=10143
+      - SMTP_HOST=127.0.0.1
+      - SMTP_PORT=10025
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+      dovecot:
+        condition: service_started
+
+  roundcube:
+    container_name: mail-roundcube
+    build:
+      context: .
+      target: roundcube
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    volumes:
+      - ./roundcube/etc:/etc/roundcube:ro
+      - ./data/www:/var/www/roundcube
+      - ./data/roundcube:/var/lib/roundcube
+    environment:
+      - ROUNDCUBE_DB_PASSWORD=${ROUNDCUBE_DB_PASSWORD}
+      - ROUNDCUBE_DES_KEY=${ROUNDCUBE_DES_KEY}
+      - MAIL_DB_PASSWORD=${MAIL_DB_PASSWORD}
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+
+  rspamd:
+    container_name: mail-rspamd
+    build:
+      context: .
+      target: rspamd
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    volumes:
+      - ./rspamd/etc:/etc/rspamd.d:ro
+      - ./data/rspamd:/var/lib/rspamd
+    environment:
+      - RSPAMD_PASSWORD=${RSPAMD_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true
+      redis:
+        condition: service_started
+
+  redis:
+    container_name: mail-redis
+    image: redis:8-alpine
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    network_mode: service:ruconet
+    command: ["redis-server", "--bind", "127.0.0.1", "--save", "300", "10", "--appendonly", "no", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - ./data/redis:/data
+    depends_on:
+      ruconet:
+        condition: service_started
+        restart: true

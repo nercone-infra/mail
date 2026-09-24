@@ -1,0 +1,3 @@
+hosts = postgresql://mail:${MAIL_DB_PASSWORD}@127.0.0.1/mail?sslmode=disable
+
+query = SELECT destination FROM aliases WHERE source = '%s' AND active

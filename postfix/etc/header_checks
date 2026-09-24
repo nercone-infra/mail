@@ -1,0 +1,2 @@
+/(?s)^Received:.*\bwith ESMTPSA\b.*/   IGNORE
+/^X-Originating-IP:/                   IGNORE

@@ -1,0 +1,3 @@
+require ["vnd.dovecot.pipe", "copy", "imapsieve"];
+
+pipe :copy "learn-ham.sh";

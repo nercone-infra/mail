@@ -1,0 +1,3 @@
+hosts = postgresql://mail:${MAIL_DB_PASSWORD}@127.0.0.1/mail?sslmode=disable
+
+query = SELECT 1 FROM accounts WHERE username = '%u' AND domain = '%d' AND active

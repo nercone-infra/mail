@@ -1,0 +1,11 @@
+postfix = postfix_init
+
+[postfix_init]
+ssl_conf = ssl_sect
+
+[ssl_sect]
+system_default = tls_sect
+
+[tls_sect]
+MinProtocol = TLSv1.2
+Ciphersuites = TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256
