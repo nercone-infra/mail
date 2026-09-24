@@ -28,7 +28,8 @@ virtual_transport       = lmtp:inet:127.0.0.1:24
 tls_config_file        = /etc/postfix/openssl.cnf
 tls_config_name        = postfix
 tls_preempt_cipherlist = yes
-tls_eecdh_auto_curves  = X25519MLKEM768 secp384r1 secp256r1
+tls_eecdh_auto_curves  = X25519MLKEM768 SecP384r1MLKEM1024 SecP256r1MLKEM768 MLKEM1024 MLKEM768 secp384r1 secp256r1
+tls_ffdhe_auto_groups  =
 
 public_tls_exclude_ciphers = aNULL, eNULL, kRSA, RC4, MD5, DES, 3DES, SEED, IDEA, CAMELLIA, ARIA, CHACHA20
 
