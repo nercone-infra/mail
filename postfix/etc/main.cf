@@ -7,7 +7,7 @@ mydomain   = nercone.dev
 maillog_file = /dev/stdout
 
 inet_interfaces = loopback-only
-inet_protocols  = ipv4
+inet_protocols  = all
 
 mydestination        =
 local_recipient_maps =
