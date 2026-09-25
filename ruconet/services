@@ -1,0 +1,11 @@
+# TYPE    LISTEN             TARGET             OPTIONS
+server    25                 127.0.0.1:25       timeout=30m
+server    143                127.0.0.1:143      timeout=30m
+server    443                127.0.0.1:8080     timeout=5m
+server    587                127.0.0.1:587      timeout=30m
+server    10025              127.0.0.1:10025    timeout=30m
+server    10080              127.0.0.1:10080    timeout=1m
+server    11334              127.0.0.1:11334    timeout=5m
+
+client    127.0.0.1:5432     db:5432            timeout=12h
+client    127.0.0.1:10587    mail-relay:587     timeout=30m

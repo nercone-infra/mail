@@ -28,6 +28,7 @@ $config['temp_dir']        = '/var/lib/roundcube/temp';
 $config['session_lifetime'] = 60;
 
 $config['use_https']       = false;
+$config['proxy_whitelist'] = ['127.0.0.1'];
 $config['session_samesite'] = 'Strict';
 
 $config['plugins'] = [

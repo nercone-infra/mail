@@ -1,7 +1,8 @@
 services:
   ruconet:
     container_name: mail-ruconet
-    image: ghcr.io/nercone-infra/ruconet-node:latest
+    image: ghcr.io/nercone-infra/ruconet:latest
+    command: ["/usr/local/bin/ruconet-node"]
     restart: unless-stopped
     init: true
     logging:
@@ -18,6 +19,9 @@ services:
       - 127.0.0.1
     dns_opt:
       - trust-ad
+    volumes:
+      - ./ruconet:/etc/ruconet.d:ro
+      - ./data/certs:/etc/certs:ro
     environment:
       - RUCONET_NAME=mail
       - RUCONET_PRIVATE_KEY=${RUCONET_PRIVATE_KEY:?RUCONET_PRIVATE_KEY is required}
@@ -56,20 +60,21 @@ services:
         condition: service_started
         restart: true
 
-  tls:
-    container_name: mail-tls
-    image: ghcr.io/nercone-infra/ruconet-tls:latest
-    restart: unless-stopped
+  schema:
+    container_name: mail-schema
+    image: postgres:18-alpine
+    restart: on-failure
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "5"
     network_mode: service:ruconet
+    entrypoint: ["/bin/sh", "/usr/local/lib/schema/entrypoint.sh"]
     volumes:
-      - ./tls:/etc/nginx.d:ro
-      - ./data/certs:/etc/certs:ro
-      - ./data/www:/var/www/roundcube:ro
+      - ./schema:/usr/local/lib/schema:ro
+    environment:
+      - PGPASSWORD=${MAIL_DB_PASSWORD}
     depends_on:
       ruconet:
         condition: service_started
@@ -160,7 +165,6 @@ services:
     network_mode: service:ruconet
     volumes:
       - ./roundcube/etc:/etc/roundcube:ro
-      - ./data/www:/var/www/roundcube
       - ./data/roundcube:/var/lib/roundcube
     environment:
       - ROUNDCUBE_DB_PASSWORD=${ROUNDCUBE_DB_PASSWORD}
